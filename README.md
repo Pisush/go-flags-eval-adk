@@ -138,7 +138,7 @@ configs := []BenchmarkConfig{
 ### Generate Report
 
 ```bash
-go run ./cmd/report -input=benchmark_results.json -output=REPORT.md
+go run ./cmd/report -input=results/benchmark_results.json -output=BENCHMARK_REPORT.md
 ```
 
 The report includes:
@@ -147,25 +147,15 @@ The report includes:
 - **Recommendations**: Flag tuning guidance based on results
 - **Complete Data**: Full results table
 
-### Sample Output
+### View Sample Results
 
-```
-## Executive Summary
+See **[SAMPLE_REPORT.md](SAMPLE_REPORT.md)** for example benchmark results from an Apple M2 with 24GB RAM. Your results will vary based on your hardware.
 
-- Total Configurations Tested: 52
-- Successful Runs: 52
-- Average Duration: 2.5s
-- Average Memory: 45.3 MB
-- Average GC Runs: 12
-
-### Fastest Configurations
-
-| Rank | Configuration | Duration | Memory (MB) | GC Runs |
-|------|---------------|----------|-------------|---------|
-| 1    | maxprocs-8    | 1.2s     | 52.1        | 8       |
-| 2    | performance   | 1.3s     | 89.4        | 4       |
-| 3    | maxprocs-4    | 1.5s     | 48.2        | 10      |
-```
+**Key findings from sample run:**
+- **Fastest**: GOMAXPROCS=4 (56ms)
+- **52 configurations tested** across 4 agent tasks
+- **All runs successful** with minimal memory usage
+- **Optimal sweet spot**: 4 cores for these workloads
 
 ## Individual Agent Usage
 
