@@ -62,7 +62,17 @@ func generateReport(results []BenchmarkResult) string {
 	report := "# Go Flags Benchmark Report\n\n"
 	report += fmt.Sprintf("Generated: %s\n\n", time.Now().Format(time.RFC1123))
 
-	// Group results by task (extract from first part of config name or use default grouping)
+	// Add background section
+	report += "## Understanding Go Runtime Flags\n\n"
+	report += generateFlagsExplanation()
+	report += "\n"
+
+	// Add test scenarios section
+	report += "## Test Scenarios\n\n"
+	report += generateScenariosExplanation()
+	report += "\n"
+
+	// Group results by task
 	taskGroups := groupByTask(results)
 
 	// Overall summary
@@ -83,7 +93,7 @@ func generateReport(results []BenchmarkResult) string {
 	report += "\n"
 
 	// Raw data table
-	report += "## Complete Results\n\n"
+	report += "## Complete Results by Scenario\n\n"
 	report += generateDataTable(results)
 	report += "\n"
 
@@ -277,10 +287,21 @@ func analyzeGOGC(results []BenchmarkResult) string {
 }
 
 func generateDataTable(results []BenchmarkResult) string {
-	table := "| Configuration | GOMAXPROCS | GOMEMLIMIT (MB) | GOGC | Duration | Memory (MB) | GC Runs | Status |\n"
-	table += "|---------------|------------|-----------------|------|----------|-------------|---------|--------|\n"
+	table := "| Scenario | Configuration | GOMAXPROCS | GOMEMLIMIT | GOGC | Duration | Memory (MB) | GC Runs | Status |\n"
+	table += "|----------|---------------|------------|------------|------|----------|-------------|---------|--------|\n"
+
+	// Group by sets of 13 (one complete run through all configs)
+	scenarios := []string{"Code Generation", "File Searching", "Code Refactoring", "AST Parsing"}
+	scenarioIdx := 0
+	configCount := 0
 
 	for _, r := range results {
+		// Determine scenario based on position in results
+		if configCount > 0 && configCount%13 == 0 {
+			scenarioIdx++
+		}
+		scenario := scenarios[scenarioIdx%len(scenarios)]
+
 		status := "✓"
 		if r.Error != "" {
 			status = "✗"
@@ -288,7 +309,7 @@ func generateDataTable(results []BenchmarkResult) string {
 
 		memLimit := "-"
 		if r.Config.MemLimit > 0 {
-			memLimit = fmt.Sprintf("%d", r.Config.MemLimit)
+			memLimit = fmt.Sprintf("%dMB", r.Config.MemLimit)
 		}
 
 		maxProcs := "default"
@@ -296,7 +317,8 @@ func generateDataTable(results []BenchmarkResult) string {
 			maxProcs = fmt.Sprintf("%d", r.Config.MaxProcs)
 		}
 
-		table += fmt.Sprintf("| %s | %s | %s | %d | %v | %.2f | %d | %s |\n",
+		table += fmt.Sprintf("| %s | %s | %s | %s | %d | %v | %.2f | %d | %s |\n",
+			scenario,
 			r.Config.Name,
 			maxProcs,
 			memLimit,
@@ -305,6 +327,8 @@ func generateDataTable(results []BenchmarkResult) string {
 			float64(r.MemoryAllocated)/(1024*1024),
 			r.NumGC,
 			status)
+
+		configCount++
 	}
 
 	return table
@@ -325,4 +349,51 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func generateFlagsExplanation() string {
+	explanation := "This benchmark tests three key Go runtime flags:\n\n"
+
+	explanation += "### GOMAXPROCS\n"
+	explanation += "**What it does:** Sets the maximum number of OS threads that can execute Go code simultaneously.\n\n"
+	explanation += "**Impact:** Higher values enable more parallelism for CPU-bound tasks, but may increase scheduling overhead.\n"
+	explanation += "- **Default:** Number of CPU cores available\n"
+	explanation += "- **When to tune:** Increase for CPU-intensive workloads, decrease for I/O-bound tasks or constrained environments\n\n"
+
+	explanation += "### GOMEMLIMIT\n"
+	explanation += "**What it does:** Sets a soft memory limit for the Go runtime (Go 1.19+). When approaching this limit, GC becomes more aggressive.\n\n"
+	explanation += "**Impact:** Helps prevent out-of-memory kills in containers and constrained environments.\n"
+	explanation += "- **Default:** No limit\n"
+	explanation += "- **When to tune:** Set to 80-90% of container memory limit or available RAM in constrained environments\n\n"
+
+	explanation += "### GOGC\n"
+	explanation += "**What it does:** Controls garbage collector aggressiveness as a percentage of heap growth.\n\n"
+	explanation += "**Impact:** Lower values (e.g., 50) trigger GC more frequently with less memory usage. Higher values (e.g., 200) reduce GC frequency but use more memory.\n"
+	explanation += "- **Default:** 100 (GC runs when heap doubles)\n"
+	explanation += "- **When to tune:** Lower for memory-constrained environments, higher for throughput-focused applications\n"
+	explanation += "- **Special:** -1 disables automatic GC\n\n"
+
+	return explanation
+}
+
+func generateScenariosExplanation() string {
+	explanation := "Four realistic agentic coding tasks are benchmarked:\n\n"
+
+	explanation += "### 1. Code Generation\n"
+	explanation += "**What it does:** Generates Go source files with functions and types using concurrent workers.\n\n"
+	explanation += "**Characteristics:** CPU-bound with moderate memory allocation. Tests parallel file I/O and string manipulation.\n\n"
+
+	explanation += "### 2. File Searching\n"
+	explanation += "**What it does:** Searches codebase for patterns using concurrent workers (like grep).\n\n"
+	explanation += "**Characteristics:** Mixed I/O and CPU workload. Tests concurrent file reading and pattern matching across many files.\n\n"
+
+	explanation += "### 3. Code Refactoring\n"
+	explanation += "**What it does:** Performs code transformations (renaming, adding comments) across multiple files.\n\n"
+	explanation += "**Characteristics:** I/O-intensive with string processing. Tests concurrent file read/write operations.\n\n"
+
+	explanation += "### 4. AST Parsing (Memory-Intensive)\n"
+	explanation += "**What it does:** Parses Go files and extracts abstract syntax tree information (imports, functions, types).\n\n"
+	explanation += "**Characteristics:** Memory-intensive with complex data structures. Tests GC behavior under heap pressure.\n\n"
+
+	return explanation
 }
