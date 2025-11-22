@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Default configuration
+  eval-default:
+    build:
+      context: ..
+      dockerfile: examples/Dockerfile
+    container_name: go-flags-eval-default
+    environment:
+      - WORKLOAD=mixed
+      - DURATION=30s
+    mem_limit: 512m
+    cpus: 2
+
+  # Memory constrained
+  eval-memory-constrained:
+    build:
+      context: ..
+      dockerfile: examples/Dockerfile
+    container_name: go-flags-eval-memory
+    environment:
+      - WORKLOAD=memory
+      - DURATION=30s
+      - GOMEMLIMIT=256MiB
+      - GOGC=50
+    mem_limit: 256m
+    cpus: 2
+
+  # CPU optimized
+  eval-cpu-optimized:
+    build:
+      context: ..
+      dockerfile: examples/Dockerfile
+    container_name: go-flags-eval-cpu
+    environment:
+      - WORKLOAD=cpu
+      - DURATION=30s
+      - GOMAXPROCS=4
+      - GOGC=200
+    mem_limit: 1g
+    cpus: 4
+
+  # Balanced configuration
+  eval-balanced:
+    build:
+      context: ..
+      dockerfile: examples/Dockerfile
+    container_name: go-flags-eval-balanced
+    environment:
+      - WORKLOAD=mixed
+      - DURATION=30s
+      - GOMAXPROCS=2
+      - GOMEMLIMIT=512MiB
+      - GOGC=100
+    mem_limit: 512m
+    cpus: 2

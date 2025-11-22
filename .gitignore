@@ -1,0 +1,38 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+eval
+*.test
+*.out
+
+# Go workspace file
+go.work
+
+# Build artifacts
+bin/
+dist/
+
+# Test results and benchmarks
+results/
+benchmark_results.json
+BENCHMARK_REPORT.md
+*.txt
+!go.mod
+!go.sum
+
+# Generated files
+generated/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
