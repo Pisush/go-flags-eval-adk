@@ -26,6 +26,9 @@ BENCHMARK_REPORT.md
 # Generated files
 generated/
 
+# Dataset downloads
+datasets/
+
 # IDE specific files
 .idea/
 .vscode/

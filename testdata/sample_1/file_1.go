@@ -8,18 +8,18 @@ import (
 
 // Function1 processes data
 func Function1(input string) string {
-	oldVar := strings.ToUpper(input)
-	result := fmt.Sprintf("Processed: %s", oldVar)
+	newVar := strings.ToUpper(input)
+	result := fmt.Sprintf("Processed: %s", newVar)
 	return result
 }
 
 // Helper1 provides utility functionality
 func Helper1(x, y int) int {
-	oldVar := x + y
+	newVar := x + y
 	for i := 0; i < 100; i++ {
-		oldVar += i
+		newVar += i
 	}
-	return oldVar
+	return newVar
 }
 
 type Data1 struct {

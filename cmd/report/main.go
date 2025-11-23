@@ -155,17 +155,17 @@ func generateTaskAnalysis(results []BenchmarkResult) string {
 		return "No successful runs for this task.\n"
 	}
 
-	// Sort by duration
+	// Sort by duration (fastest to slowest)
 	sorted := make([]BenchmarkResult, len(successResults))
 	copy(sorted, successResults)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Duration < sorted[j].Duration
 	})
 
-	analysis += "#### Fastest Configurations\n\n"
+	analysis += "#### Best 4 Fastest Configurations\n\n"
 	analysis += "| Rank | Configuration | Duration | Memory (MB) | GC Runs |\n"
 	analysis += "|------|---------------|----------|-------------|----------|\n"
-	for i := 0; i < min(5, len(sorted)); i++ {
+	for i := 0; i < min(4, len(sorted)); i++ {
 		r := sorted[i]
 		analysis += fmt.Sprintf("| %d | %s | %v | %.2f | %d |\n",
 			i+1,
@@ -176,15 +176,30 @@ func generateTaskAnalysis(results []BenchmarkResult) string {
 	}
 	analysis += "\n"
 
-	// Sort by memory
+	analysis += "#### Worst 4 Slowest Configurations\n\n"
+	analysis += "| Rank | Configuration | Duration | Memory (MB) | GC Runs |\n"
+	analysis += "|------|---------------|----------|-------------|----------|\n"
+	start := max(0, len(sorted)-4)
+	for i := len(sorted) - 1; i >= start; i-- {
+		r := sorted[i]
+		analysis += fmt.Sprintf("| %d | %s | %v | %.2f | %d |\n",
+			len(sorted)-i,
+			r.Config.Name,
+			r.Duration,
+			float64(r.MemoryAllocated)/(1024*1024),
+			r.NumGC)
+	}
+	analysis += "\n"
+
+	// Sort by memory (lowest to highest)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].MemoryAllocated < sorted[j].MemoryAllocated
 	})
 
-	analysis += "#### Lowest Memory Usage\n\n"
+	analysis += "#### Best 4 Lowest Memory Usage\n\n"
 	analysis += "| Rank | Configuration | Memory (MB) | Duration | GC Runs |\n"
 	analysis += "|------|---------------|-------------|----------|----------|\n"
-	for i := 0; i < min(5, len(sorted)); i++ {
+	for i := 0; i < min(4, len(sorted)); i++ {
 		r := sorted[i]
 		analysis += fmt.Sprintf("| %d | %s | %.2f | %v | %d |\n",
 			i+1,
@@ -195,18 +210,48 @@ func generateTaskAnalysis(results []BenchmarkResult) string {
 	}
 	analysis += "\n"
 
-	// Sort by GC runs
+	analysis += "#### Worst 4 Highest Memory Usage\n\n"
+	analysis += "| Rank | Configuration | Memory (MB) | Duration | GC Runs |\n"
+	analysis += "|------|---------------|-------------|----------|----------|\n"
+	start = max(0, len(sorted)-4)
+	for i := len(sorted) - 1; i >= start; i-- {
+		r := sorted[i]
+		analysis += fmt.Sprintf("| %d | %s | %.2f | %v | %d |\n",
+			len(sorted)-i,
+			r.Config.Name,
+			float64(r.MemoryAllocated)/(1024*1024),
+			r.Duration,
+			r.NumGC)
+	}
+	analysis += "\n"
+
+	// Sort by GC runs (fewest to most)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].NumGC < sorted[j].NumGC
 	})
 
-	analysis += "#### Fewest GC Runs\n\n"
+	analysis += "#### Best 4 Fewest GC Runs\n\n"
 	analysis += "| Rank | Configuration | GC Runs | Duration | Memory (MB) |\n"
 	analysis += "|------|---------------|---------|----------|-------------|\n"
-	for i := 0; i < min(5, len(sorted)); i++ {
+	for i := 0; i < min(4, len(sorted)); i++ {
 		r := sorted[i]
 		analysis += fmt.Sprintf("| %d | %s | %d | %v | %.2f |\n",
 			i+1,
+			r.Config.Name,
+			r.NumGC,
+			r.Duration,
+			float64(r.MemoryAllocated)/(1024*1024))
+	}
+	analysis += "\n"
+
+	analysis += "#### Worst 4 Most GC Runs\n\n"
+	analysis += "| Rank | Configuration | GC Runs | Duration | Memory (MB) |\n"
+	analysis += "|------|---------------|---------|----------|-------------|\n"
+	start = max(0, len(sorted)-4)
+	for i := len(sorted) - 1; i >= start; i-- {
+		r := sorted[i]
+		analysis += fmt.Sprintf("| %d | %s | %d | %v | %.2f |\n",
+			len(sorted)-i,
 			r.Config.Name,
 			r.NumGC,
 			r.Duration,
