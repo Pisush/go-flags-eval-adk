@@ -12,13 +12,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/natalie/go-flags-eval/internal/agentmetrics"
 )
 
 var (
-	target    = flag.String("target", "./testdata", "Target directory for refactoring")
-	operation = flag.String("operation", "rename", "Operation: rename, add-comments, format")
-	oldName   = flag.String("old", "oldVar", "Old variable name (for rename)")
-	newName   = flag.String("new", "newVar", "New variable name (for rename)")
+	target        = flag.String("target", "./testdata", "Target directory for refactoring")
+	operation     = flag.String("operation", "rename", "Operation: rename, add-comments, format")
+	oldName       = flag.String("old", "oldVar", "Old variable name (for rename)")
+	newName       = flag.String("new", "newVar", "New variable name (for rename)")
+	metricsOutput = flag.String("metrics-output", "", "File to write performance metrics (JSON)")
 )
 
 func main() {
@@ -106,6 +109,27 @@ func main() {
 	fmt.Printf("Duration: %v\n", elapsed)
 	fmt.Printf("Memory allocated: %.2f MB\n", float64(ms.TotalAlloc)/(1024*1024))
 	fmt.Printf("GC runs: %d\n", ms.NumGC)
+
+	// Write metrics to file if requested
+	if *metricsOutput != "" {
+		metrics := &agentmetrics.Metrics{
+			Duration:        elapsed,
+			MemoryAllocated: ms.TotalAlloc,
+			HeapAllocated:   ms.HeapAlloc,
+			NumGC:           ms.NumGC,
+			PauseTimeNs:     ms.PauseTotalNs,
+			Goroutines:      runtime.NumGoroutine(),
+			FilesProcessed:  len(files),
+			Custom: map[string]any{
+				"files_modified": filesModified,
+				"total_changes":  totalChanges,
+			},
+		}
+
+		if err := metrics.WriteToFile(*metricsOutput); err != nil {
+			log.Printf("Failed to write metrics: %v", err)
+		}
+	}
 }
 
 type refactorResult struct {

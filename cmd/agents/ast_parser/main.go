@@ -14,13 +14,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/natalie/go-flags-eval/internal/agentmetrics"
 )
 
 var (
-	target      = flag.String("target", "./testdata", "Target directory to parse")
-	findImports = flag.Bool("imports", true, "Find all imports")
-	findFuncs   = flag.Bool("funcs", true, "Find all functions")
-	findTypes   = flag.Bool("types", true, "Find all type definitions")
+	target        = flag.String("target", "./testdata", "Target directory to parse")
+	findImports   = flag.Bool("imports", true, "Find all imports")
+	findFuncs     = flag.Bool("funcs", true, "Find all functions")
+	findTypes     = flag.Bool("types", true, "Find all type definitions")
+	metricsOutput = flag.String("metrics-output", "", "File to write performance metrics (JSON)")
 )
 
 type ParsedFile struct {
@@ -102,10 +105,11 @@ func main() {
 
 	elapsed := time.Since(start)
 
-	// Print statistics
+	// Collect statistics
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 
+	// Print statistics
 	fmt.Printf("\nResults:\n")
 	fmt.Printf("========\n")
 	fmt.Printf("Files parsed: %d\n", len(allParsed))
@@ -117,6 +121,28 @@ func main() {
 	fmt.Printf("Heap allocated: %.2f MB\n", float64(ms.HeapAlloc)/(1024*1024))
 	fmt.Printf("GC runs: %d\n", ms.NumGC)
 	fmt.Printf("Goroutines: %d\n", runtime.NumGoroutine())
+
+	// Write metrics to file if requested
+	if *metricsOutput != "" {
+		metrics := &agentmetrics.Metrics{
+			Duration:        elapsed,
+			MemoryAllocated: ms.TotalAlloc,
+			HeapAllocated:   ms.HeapAlloc,
+			NumGC:           ms.NumGC,
+			PauseTimeNs:     ms.PauseTotalNs,
+			Goroutines:      runtime.NumGoroutine(),
+			FilesProcessed:  len(allParsed),
+			Custom: map[string]any{
+				"total_imports":   totalImports,
+				"total_functions": totalFuncs,
+				"total_types":     totalTypes,
+			},
+		}
+
+		if err := metrics.WriteToFile(*metricsOutput); err != nil {
+			log.Printf("Failed to write metrics: %v", err)
+		}
+	}
 }
 
 func parseFile(filename string) *ParsedFile {

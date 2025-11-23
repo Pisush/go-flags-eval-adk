@@ -12,12 +12,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/natalie/go-flags-eval/internal/agentmetrics"
 )
 
 var (
-	pattern = flag.String("pattern", "func", "Pattern to search for")
-	dir     = flag.String("dir", "./testdata", "Directory to search in")
-	workers = flag.Int("workers", 0, "Number of worker goroutines (0 = GOMAXPROCS)")
+	pattern       = flag.String("pattern", "func", "Pattern to search for")
+	dir           = flag.String("dir", "./testdata", "Directory to search in")
+	workers       = flag.Int("workers", 0, "Number of worker goroutines (0 = GOMAXPROCS)")
+	metricsOutput = flag.String("metrics-output", "", "File to write performance metrics (JSON)")
 )
 
 type Match struct {
@@ -117,6 +120,26 @@ func main() {
 				break
 			}
 			fmt.Printf("%s:%d: %s\n", match.File, match.Line, strings.TrimSpace(match.Content))
+		}
+	}
+
+	// Write metrics to file if requested
+	if *metricsOutput != "" {
+		metrics := &agentmetrics.Metrics{
+			Duration:        elapsed,
+			MemoryAllocated: ms.TotalAlloc,
+			HeapAllocated:   ms.HeapAlloc,
+			NumGC:           ms.NumGC,
+			PauseTimeNs:     ms.PauseTotalNs,
+			Goroutines:      runtime.NumGoroutine(),
+			FilesProcessed:  len(files),
+			Custom: map[string]any{
+				"matches_found": len(matches),
+			},
+		}
+
+		if err := metrics.WriteToFile(*metricsOutput); err != nil {
+			log.Printf("Failed to write metrics: %v", err)
 		}
 	}
 }

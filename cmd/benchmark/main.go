@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"runtime/debug"
 	"time"
+
+	"github.com/natalie/go-flags-eval/internal/agentmetrics"
 )
 
 // BenchmarkConfig defines a set of Go runtime flags to test
@@ -145,6 +147,16 @@ func runBenchmark(ctx context.Context, task AgentTask, cfg BenchmarkConfig) Benc
 		Config: cfg,
 	}
 
+	// Create temporary file for metrics
+	metricsFile, err := os.CreateTemp("", "agent-metrics-*.json")
+	if err != nil {
+		result.Error = fmt.Sprintf("Failed to create metrics file: %v", err)
+		return result
+	}
+	metricsPath := metricsFile.Name()
+	metricsFile.Close()
+	defer os.Remove(metricsPath)
+
 	// Prepare environment
 	env := os.Environ()
 	if cfg.MaxProcs > 0 {
@@ -157,18 +169,17 @@ func runBenchmark(ctx context.Context, task AgentTask, cfg BenchmarkConfig) Benc
 		env = append(env, fmt.Sprintf("GOGC=%d", cfg.GCPercent))
 	}
 
-	// Collect initial stats
-	var startMemStats runtime.MemStats
-	runtime.ReadMemStats(&startMemStats)
+	// Add metrics output flag to args
+	args := append(task.Args, fmt.Sprintf("-metrics-output=%s", metricsPath))
 
 	// Run command
-	cmd := exec.CommandContext(ctx, task.Command, task.Args...)
+	cmd := exec.CommandContext(ctx, task.Command, args...)
 	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	startTime := time.Now()
-	err := cmd.Run()
+	err = cmd.Run()
 	result.Duration = time.Since(startTime)
 
 	if err != nil {
@@ -178,13 +189,17 @@ func runBenchmark(ctx context.Context, task AgentTask, cfg BenchmarkConfig) Benc
 		}
 	}
 
-	// Collect final stats
-	var endMemStats runtime.MemStats
-	runtime.ReadMemStats(&endMemStats)
-
-	result.MemoryAllocated = endMemStats.TotalAlloc - startMemStats.TotalAlloc
-	result.NumGC = endMemStats.NumGC - startMemStats.NumGC
-	result.PauseTimeNs = endMemStats.PauseTotalNs - startMemStats.PauseTotalNs
+	// Read metrics from agent
+	metrics, err := agentmetrics.ReadFromFile(metricsPath)
+	if err != nil {
+		// Fall back to duration from benchmark harness
+		log.Printf("Warning: Could not read agent metrics: %v", err)
+	} else {
+		// Use metrics from the actual agent process
+		result.MemoryAllocated = metrics.MemoryAllocated
+		result.NumGC = metrics.NumGC
+		result.PauseTimeNs = metrics.PauseTimeNs
+	}
 
 	return result
 }
