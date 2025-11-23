@@ -8,7 +8,7 @@
 
 - **CPU:** Apple M2 (ARM64)
 - **Memory:** 24 GB
-- **OS:** macOS Darwin 23.5.0
+- **OS:** macOS 14.5
 - **Go Version:** 1.24.10
 - **Date:** November 23, 2025
 
