@@ -69,31 +69,31 @@ func main() {
 		{"performance", 8, 2048, 200},
 	}
 
-	// Define agent tasks
+	// Define agent tasks with heavier workloads
 	tasks := []AgentTask{
 		{
 			Name:        "code-gen",
 			Command:     "go",
-			Args:        []string{"run", "./cmd/agents/code_generator", "-files=10", "-lines=100"},
-			Description: "Generate 10 Go files with 100 lines each",
+			Args:        []string{"run", "./cmd/agents/code_generator", "-files=100", "-lines=500"},
+			Description: "Generate 100 Go files with 500 lines each (heavy workload)",
 		},
 		{
 			Name:        "file-search",
 			Command:     "go",
-			Args:        []string{"run", "./cmd/agents/file_searcher", "-pattern=func", "-dir=./testdata"},
-			Description: "Search for 'func' pattern in test data",
+			Args:        []string{"run", "./cmd/agents/file_searcher", "-pattern=func", "-dir=./testdata", "-workers=8"},
+			Description: "Search for 'func' pattern across ~300 files",
 		},
 		{
 			Name:        "refactor",
 			Command:     "go",
 			Args:        []string{"run", "./cmd/agents/refactor", "-target=./testdata", "-operation=rename"},
-			Description: "Rename variables across multiple files",
+			Description: "Rename variables across ~300 files",
 		},
 		{
 			Name:        "ast-parser",
 			Command:     "go",
 			Args:        []string{"run", "./cmd/agents/ast_parser", "-target=./testdata"},
-			Description: "Parse Go files and extract AST information (memory-intensive)",
+			Description: "Parse ~300 Go files and extract AST information (memory-intensive)",
 		},
 	}
 

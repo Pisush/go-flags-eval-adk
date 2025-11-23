@@ -62,6 +62,17 @@ func generateReport(results []BenchmarkResult) string {
 	report := "# Go Flags Benchmark Report\n\n"
 	report += fmt.Sprintf("Generated: %s\n\n", time.Now().Format(time.RFC1123))
 
+	// Add agent information
+	report += "## Agent Information\n\n"
+	report += fmt.Sprintf("- **Total Agents**: 4\n")
+	report += fmt.Sprintf("- **Total Benchmark Runs**: %d (4 agents × 13 configurations)\n\n", len(results))
+	report += "### Active Agents\n\n"
+	report += "1. **Code Generator** - Generates Go source files with functions and types using concurrent workers\n"
+	report += "2. **File Searcher** - Searches codebase for patterns using concurrent workers (grep-like functionality)\n"
+	report += "3. **Code Refactorer** - Performs code transformations (renaming, comments) across multiple files\n"
+	report += "4. **AST Parser** - Parses Go files and extracts abstract syntax tree information (memory-intensive)\n"
+	report += "\n"
+
 	// Add background section
 	report += "## Understanding Go Runtime Flags\n\n"
 	report += generateFlagsExplanation()
